@@ -1,7 +1,8 @@
 # ETHARA NEXUS
 > **AI Operations & Team Collaboration Platform** — *Production-Ready AI Workflow Management*
 
-![Ethara Nexus Banner](https://via.placeholder.com/1200x400/050505/ff4500?text=ETHARA+NEXUS+CYBER+INDUSTRIAL)
+<img width="1888" height="804" alt="image" src="https://github.com/user-attachments/assets/df4bc3fd-bbf3-4949-92fc-548b59a5a63a" />
+
 
 ---
 
