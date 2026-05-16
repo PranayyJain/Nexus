@@ -16,6 +16,8 @@ const signToken = (userId) => {
   });
 };
 
+const { seedUserData } = require("../utils/seedData.util");
+
 /**
  * POST /api/auth/signup
  * Creates a new user account with hashed password
@@ -41,6 +43,9 @@ const signup = async (req, res, next) => {
       },
       select: { id: true, fullName: true, email: true, role: true, department: true, createdAt: true },
     });
+
+    // Seed sample data for the new user
+    await seedUserData(user.id);
 
     const token = signToken(user.id);
 

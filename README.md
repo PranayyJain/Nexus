@@ -54,15 +54,13 @@ The platform uses a custom **Brutalist / Cyber-Industrial** aesthetic:
 
 ## 🚀 Deployment
 
-### Railway (Backend)
-1. Set root to `/backend`
-2. Add environment variables: `DATABASE_URL` (pooled), `DIRECT_URL` (for migrations), `JWT_SECRET`.
-3. Build command: `npm install && npx prisma generate && npx prisma migrate deploy`
+The platform is optimized for **Vercel** deployment.
 
-### Railway (Frontend)
-1. Set root to `/frontend`
-2. Set `VITE_API_URL` to your backend production URL.
-3. Build command: `npm run build`
+Refer to the [Detailed Deployment Guide](file:///c:/Ethara%20Nexus/DEPLOYMENT.md) for step-by-step instructions on setting up:
+1.  **Vercel Backend** (Serverless Node.js)
+2.  **Vercel Frontend** (Vite + SPA Routing)
+3.  **Supabase/Vercel Postgres** integration
+
 
 ---
 

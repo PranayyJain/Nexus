@@ -1,8 +1,0 @@
-# Railway deployment configuration for ETHARA NEXUS Frontend
-[build]
-builder = "nixpacks"
-buildCommand = "npm install && npm run build"
-
-[deploy]
-startCommand = "npx serve dist -p $PORT"
-restartPolicyType = "on_failure"

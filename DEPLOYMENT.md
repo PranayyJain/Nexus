@@ -1,6 +1,6 @@
-# 🚀 Ethara Nexus Deployment Guide
+# 🚀 Ethara Nexus Deployment Guide (Vercel)
 
-This guide provide step-by-step instructions to deploy the **Ethara Nexus** platform (Frontend & Backend) using GitHub and Railway.
+This guide provides step-by-step instructions to deploy the **Ethara Nexus** platform (Frontend & Backend) using GitHub and Vercel.
 
 ---
 
@@ -10,7 +10,7 @@ This guide provide step-by-step instructions to deploy the **Ethara Nexus** plat
    ```bash
    git init
    git add .
-   git commit -m "feat: initial commit for deployment"
+   git commit -m "feat: initial commit for vercel deployment"
    ```
 2. **Create a new repository** on GitHub (e.g., `ethara-nexus`).
 3. **Push to GitHub**:
@@ -22,55 +22,74 @@ This guide provide step-by-step instructions to deploy the **Ethara Nexus** plat
 
 ---
 
-## 🛠 Step 2: Railway Backend Deployment
+## 🗄 Step 2: Database Setup (Supabase or Vercel Postgres)
 
-1. Login to [Railway.app](https://railway.app/).
-2. Click **+ New Project** > **Deploy from GitHub repo** > Select `ethara-nexus`.
-3. When prompted, select the **Root Directory** as `/backend`.
-4. **Provision a Database**:
-   - Click **+ Add Service** > **Database** > **Add PostgreSQL**.
-   - Railway will automatically provide a `DATABASE_URL`.
-5. **Configure Environment Variables**:
-   - Go to the **Variables** tab for the backend service.
-   - Add the following:
-     | Variable | Value |
-     | --- | --- |
-     | `DATABASE_URL` | (Use the one from Railway PostgreSQL) |
-     | `DIRECT_URL` | (Same as DATABASE_URL, or direct connection if using Supabase) |
-     | `JWT_SECRET` | (A long random string) |
-     | `FRONTEND_URL` | (Your Frontend Railway URL - set this *after* frontend is deployed) |
-     | `NODE_ENV` | `production` |
-6. **Verify Build**: Railway will use `railway.toml` to run migrations and start the server.
+Since we are moving away from Railway, you need a PostgreSQL database.
+
+### Option A: Supabase (Recommended)
+1. Create a project at [supabase.com](https://supabase.com/).
+2. Go to **Project Settings** > **Database**.
+3. Copy the **Connection String** (Transaction mode, port 6543).
+4. You will need this for `DATABASE_URL`.
+
+### Option B: Vercel Postgres
+1. In your Vercel Dashboard, go to the **Storage** tab.
+2. Click **Create** > **Postgres**.
+3. Connect it to your backend project later.
 
 ---
 
-## 🌐 Step 3: Railway Frontend Deployment
+## 🛠 Step 3: Vercel Backend Deployment
 
-1. In the same project, click **+ New Service** > **GitHub Repo** > Select `ethara-nexus`.
-2. Select the **Root Directory** as `/frontend`.
-3. **Configure Environment Variables**:
-   - Go to the **Variables** tab for the frontend service.
-   - Add the following:
-     | Variable | Value |
-     | --- | --- |
-     | `VITE_API_URL` | `https://your-backend-url.railway.app/api` |
-4. **Build & Deploy**: Railway will build the React app and serve it using `serve`.
+1. Go to [Vercel](https://vercel.com/new).
+2. Import your `ethara-nexus` repository.
+3. **Project Name**: `ethara-nexus-api`.
+4. **Root Directory**: Select `backend`.
+5. **Framework Preset**: `Other`.
+6. **Build & Development Settings**:
+   - **Build Command**: `npx prisma generate` (or leave empty if using `postinstall`).
+   - **Install Command**: `npm install`.
+7. **Environment Variables**:
+   | Variable | Value |
+   | --- | --- |
+   | `DATABASE_URL` | (Your Supabase/Postgres URL) |
+   | `DIRECT_URL` | (Same as DATABASE_URL for Prisma) |
+   | `JWT_SECRET` | (A long random string) |
+   | `FRONTEND_URL` | (Your Vercel Frontend URL - set this *after* frontend is deployed) |
+   | `NODE_ENV` | `production` |
+8. **Deploy**.
 
 ---
 
-## ✅ Step 4: Final Linkage
+## 🌐 Step 4: Vercel Frontend Deployment
 
-1. Once the frontend is deployed, copy its URL (e.g., `https://ethara-nexus-production.up.railway.app`).
-2. Go back to the **Backend Service** > **Variables**.
-3. Update `FRONTEND_URL` with your actual frontend URL to allow CORS.
+1. Go to [Vercel](https://vercel.com/new) again.
+2. Import the same `ethara-nexus` repository.
+3. **Project Name**: `ethara-nexus-web`.
+4. **Root Directory**: Select `frontend`.
+5. **Framework Preset**: `Vite`.
+6. **Environment Variables**:
+   | Variable | Value |
+   | --- | --- |
+   | `VITE_API_URL` | `https://ethara-nexus-api.vercel.app/api` |
+7. **Deploy**.
+
+---
+
+## ✅ Step 5: Final Linkage
+
+1. Once the frontend is deployed, copy its URL (e.g., `https://ethara-nexus-web.vercel.app`).
+2. Go back to your **Backend Project** in Vercel > **Settings** > **Environment Variables**.
+3. Update `FRONTEND_URL` with your actual frontend URL.
+4. Redeploy the backend if necessary.
 
 ---
 
 ## 🔍 Troubleshooting
 
 - **CORS Errors**: Ensure `FRONTEND_URL` in the backend exactly matches the frontend URL (no trailing slash).
-- **Prisma Migrations**: If migrations fail, ensure `DIRECT_URL` is correctly set.
-- **API Connection**: Check the browser console (F12) to ensure `VITE_API_URL` points to the correct backend endpoint.
+- **Prisma Migrations**: Before the first deployment, run `npx prisma db push` from your local `backend` folder while connected to the production database to sync the schema.
+- **API Connection**: Check the browser console (F12) to ensure `VITE_API_URL` points to the correct Vercel deployment.
 
 ---
 *Built by Antigravity for Ethara.ai*
