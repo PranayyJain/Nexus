@@ -1,0 +1,243 @@
+// =============================================================
+// ETHARA NEXUS - Prisma Database Schema
+// AI Operations & Team Collaboration Platform
+// =============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ===================== ENUMS =====================
+
+// User roles within the platform
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+// Department/function within Ethara
+enum Department {
+  SDE
+  QR
+  QL
+  TASKER
+  TPM
+  HR
+  PL
+}
+
+// Task lifecycle statuses
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+  BLOCKED
+}
+
+// Task urgency levels
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// AI Operations specific task types
+enum TaskType {
+  ANNOTATION
+  MODEL_EVAL
+  PROMPT_QA
+  DATA_CLEANUP
+  INFRA
+  GENERAL
+}
+
+// ===================== MODELS =====================
+
+// Core user model - represents an Ethara team member
+model User {
+  id         String     @id @default(uuid())
+  fullName   String
+  email      String     @unique
+  password   String     // bcrypt hashed
+  role       Role       @default(MEMBER)
+  department Department?
+  avatarUrl  String?
+
+  // Relations
+  projectMemberships ProjectMember[]
+  assignedTasks      Task[]          @relation("AssignedTasks")
+  createdTasks       Task[]          @relation("CreatedTasks")
+  comments           Comment[]
+  notifications      Notification[]
+  activities         ActivityLog[]
+  documents          Document[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@map("users")
+}
+
+// Project model - represents an Ethara AI project/initiative
+model Project {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  color       String? @default("#6366f1") // accent color for the project card
+
+  // Relations
+  members    ProjectMember[]
+  tasks      Task[]
+  activities ActivityLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@map("projects")
+}
+
+// Join table for project membership with role-per-project support
+model ProjectMember {
+  id        String @id @default(uuid())
+  userId    String
+  projectId String
+  role      Role   @default(MEMBER) // role within this specific project
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, projectId]) // a user can only be a member once per project
+  @@index([projectId])
+  @@map("project_members")
+}
+
+// Task model - the core work unit in Ethara Nexus
+model Task {
+  id          String     @id @default(uuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  priority    Priority   @default(MEDIUM)
+  status      TaskStatus @default(TODO)
+  taskType    TaskType   @default(GENERAL)
+  confidenceScore Float? // Tracking annotator/model confidence
+  reviewerFeedback String? // Feedback from QA stage
+  tags        String[]   @default([]) // e.g., ["annotation", "QA", "sprint"]
+
+  // Foreign keys
+  assigneeId String?
+  creatorId  String
+  projectId  String
+
+  // Relations
+  assignee User?   @relation("AssignedTasks", fields: [assigneeId], references: [id], onDelete: SetNull)
+  creator  User    @relation("CreatedTasks", fields: [creatorId], references: [id])
+  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  comments   Comment[]
+  activities ActivityLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([assigneeId])
+  @@index([status])
+  @@index([priority])
+  @@index([dueDate])
+  @@index([projectId, status, priority]) // Compound index for fast Kanban sorting
+  @@map("tasks")
+}
+
+// Task comments - threaded discussion on tasks
+model Comment {
+  id      String @id @default(uuid())
+  content String
+
+  // Foreign keys
+  taskId String
+  userId String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([taskId])
+  @@map("comments")
+}
+
+// Activity log - tracks all significant actions for the activity timeline
+model ActivityLog {
+  id      String  @id @default(uuid())
+  action  String  // human-readable action e.g. "created task", "updated status to Done"
+  details Json?   // optional extra metadata
+
+  // Foreign keys
+  userId    String
+  taskId    String?
+  projectId String?
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task    Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([taskId])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+// In-app notifications for users
+model Notification {
+  id      String  @id @default(uuid())
+  content String
+  isRead  Boolean @default(false)
+  type    String  @default("info") // "task_assigned", "deadline", "completed", "info"
+  link    String? // optional deep link e.g. "/tasks/uuid"
+
+  // Foreign key
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
+}
+
+// Knowledge Base Documents (SOPs, Client Req, Research Papers)
+model Document {
+  id          String   @id @default(uuid())
+  title       String
+  category    String   @default("SOP") // "SOP", "REQUIREMENT", "RESEARCH", "OTHER"
+  content     String?  // Markdown content
+  linkUrl     String?  // External link to PDF/Google Doc
+  tags        String[] @default([])
+
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@map("documents")
+}
